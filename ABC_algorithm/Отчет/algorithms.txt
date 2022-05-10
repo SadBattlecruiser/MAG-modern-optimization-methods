@@ -1,0 +1,48 @@
+
+for each Xi do
+    Сгенерировать Vi по соответствующей стратегии SXi;
+    Вычислить f(Vi);
+    if f(Vi) < f(Xi) then
+        Xi = Vi;
+        triali = 0;
+    else
+        triali = triali + 1;
+    end
+    Обновить стратегию SXi в соответствии с (10);
+end
+
+
+for i=1 to SN do
+    Получить последовательность MSi для Xi в соответствии с (10);
+    Случайно выбрать Xiri из MSi в соответствии с (10);
+    Найти индекс h в популяции для Xiri (Xh == Xiri);
+    Сгенерировать Vh по соответствующей стратегии SXh;
+    Вычислить f(Vh);
+    if f(Vh) < f(Xh) then
+        Xh = Vh;
+        trialh = 0;
+    else
+        trialh = trialh + 1;
+    end
+    Обновить стратегию SXh в соответствии с (10);
+end
+
+
+Инициализировать популяцию мощностью SN в соответствии с (10);
+Xbest_prev = best(Xi)
+n = 0
+while n < n_lim do
+    Выполнить Алгоритм 1 (employeed bee);
+    Выполнить Алгоритм 2 (onlooker bee);
+    if max {triali} > limit then
+        Заменить Xi новым  в соответствии с (10) (scout bee);
+        triali=0
+    end
+    Xbest = best(Xi);
+    if abs(f(Xbest) - f(Xbest_prev)) < delta then
+        n = n + 1;
+    else
+        n = 0;
+    end
+    Xbest_prev = Xbest;
+end
