@@ -11,7 +11,9 @@ from multiprocessing import Pool
 
 
 @njit
-def spherical_func(X, X0=np.array([2, 3])):
+def spherical_func(X, X0=None):
+    if X0 is None:
+        X0 = np.zeros(X.shape[0])
     return np.sum(np.power(X - X0, 2))
 
 
@@ -232,23 +234,25 @@ def NNSABC_wrapper(start_num, SN, Xmin, Xmax, SP, func, max_iterations=1000, tri
         'stop_reason': stop_reason,
         'FX_best': FX_best,
         'X_best': X_best,
-        'path': path
+        'path': path,
+        'Xmin': Xmin[0],
+        'Xmax': Xmax[0]
     }
 
 
-# Тестируем Растригина
+# Тестируем
 from multiprocessing import Pool
 from functools import partial
 
 if __name__ == '__main__':
-    #imensions_list = [2, 4, 8, 16, 32]
-    dimensions_list = [4]
+    dimensions_list = [2, 4, 8, 16, 32]
+    #dimensions_list = [16]
 
-    func = rosenbrok_func
-    alpha = 5
+    func = rastrigin_func
+    alpha = 0.2
     SN = 70
     SP = [ss1, ss2]
-    max_iterations = 3000
+    max_iterations = 1000
 
     res = []
 
@@ -265,7 +269,7 @@ if __name__ == '__main__':
             max_iterations=max_iterations
         )
         with Pool(12) as p:
-            res += p.map(NNSABC_func, range(12))
+            res += p.map(NNSABC_func, range(100))
             #for start in range(100):
             #    print('dimensions:', dimensions)
             #    print('start num: ', start)
@@ -290,27 +294,30 @@ if __name__ == '__main__':
 
     import pandas as pd
 
-    rosenbrok_df = pd.DataFrame([{
+    rastrigin_df = pd.DataFrame([{
         'start_num': i['start_num'],
         'stop_reason': i['stop_reason'],
         'FX_best': i['FX_best'],
-        'X_best': i['X_best']
+        'X_best': i['X_best'],
+        'Xmin': i['Xmin'],
+        'Xmax': i['Xmax']
     } for i in res])
-    rosenbrok_df['dimensions'] = rosenbrok_df['X_best'].apply(lambda x: np.shape(x)[0])
-    rosenbrok_df['error_norm'] = (rosenbrok_df['FX_best'] + 330.).apply(np.abs)
-    print(rosenbrok_df)
-    rosenbrok_df.to_csv('rosenbrok_df.csv')
+    rastrigin_df['dimensions'] = rastrigin_df['X_best'].apply(lambda x: np.shape(x)[0])
+    #rastrigin_df['error_norm'] = (rastrigin_df['FX_best'] + 330.).apply(np.abs)
+    rastrigin_df['error_norm'] = (rastrigin_df['FX_best'] + 390.).apply(np.abs)
+    print(rastrigin_df)
+    rastrigin_df.to_csv(f'rastrigin_{Xmax[0]}_df.csv')
 
 
     # Считаем вероятность попадания в глобальный минимум
     global_prob = []
-    for dimensions in rosenbrok_df['dimensions'].unique():
+    for dimensions in rastrigin_df['dimensions'].unique():
         global_prob.append({
             'dimensions': dimensions,
-            'global_prob': float(np.sum((rosenbrok_df['dimensions'] == dimensions) & (rosenbrok_df['error_norm'] <= 1e-2))) / \
-                        float(np.sum(rosenbrok_df['dimensions'] == dimensions))
+            'global_prob': float(np.sum((rastrigin_df['dimensions'] == dimensions) & (rastrigin_df['error_norm'] <= 1e-2))) / \
+                        float(np.sum(rastrigin_df['dimensions'] == dimensions))
         })
     global_prob_df = pd.DataFrame(global_prob)
     print(global_prob_df)
-    global_prob_df.to_csv('rosenbrok_global_prob_df.csv')
+    global_prob_df.to_csv(f'rastrigin_global_prob_{Xmax[0]}_df.csv')
 
