@@ -1,0 +1,50 @@
+fnproc_parfunctionrn2,c2 ;время обработки в "параллельной" модели
+0,0/1,100001
+fnproc_poslfunctionrn3,c2 ; время обработки в "последов-ой" модели
+0,0/1,100001
+usvariablep4/p3 ; расчет коэффициента ускорения
+tabl_s table v$us,42,0.25,60
+proc_parstorage 64 ; число процессоров в "параллельной" модели N=64
+proc_poslstorage 1 ; число процессоров в "последовательной" модели N=1
+generate 1e8,100 ; транзакт-задача (1024 узла)
+split 63 ; N=63+1 - количество групп
+assign 1,16 ;z=16 - количество узлов в группе
+queueqhost1_par ; очередь на host-процессоре
+seize host
+depart qhost1_par
+advance 5,3 ; обработканаhost-процессоре
+release host
+queue qproc_par
+enter proc_par ; обработкапроцессором
+depart qproc_par
+proc2 advance fn$fnproc_par ; циклдляобработкигруппы
+loop 1,proc2 ; число итераций определено в 1-ом параметре транзакта
+leaveproc_par
+queueqhost2_par ; заключительная обработка на host-процессоре
+seize host
+depart qhost2_par
+advance 5,3
+releasehost
+assemble 64 ; объединение транзактов, относящихся к одной задаче
+assign 3,m1 ; фиксация времени прохождения транзакта по модели
+mark 2
+split1023 ;1024 узла (одна задача)
+queue qhost1_posl
+seize host
+depart qhost1_posl
+advance 5,3
+release host
+queue qproc_posl
+enter proc_posl ; обработкапроцессором
+depart qproc_posl
+advance fn$fnproc_posl
+leave proc_posl
+queue qhost2
+seize host
+depart qhost2
+advance 5,3
+releasehost
+assemble1024
+assign 4,mp2 ; фиксация времени прохождения транзакта по модели
+tabulatetabl_s ; расчет коэффициента ускорения
+terminate 1

@@ -1,0 +1,52 @@
+fnproc_par  FUNCTION        rn2,c2              время обработки в "параллельной" модели
+0,0/1,100001
+fnproc_posl FUNCTION        rn3,c2              время обработки в "последов-ой" модели
+0,0/1,100001
+us          VARIABLE        p4/p3               расчет коэффициента ускорения
+tabl_s      TABLE           v$us,42,0.25,60
+proc_par    STORAGE         64                  число процессоров в "параллельной" модели N=64
+proc_posl   STORAGE         1                   число процессоров в "последовательной" модели N=1
+
+            GENERATE        1e8,100             транзакт-задача (1024 узла)
+            SPLIT           63                  N=63+1 - количество групп
+            ASSIGN          1,16                z=16 - количество узлов в группе
+            QUEUE           qhost1_par          очередь на host-процессоре
+            SEIZE           host
+            DEPART          qhost1_par
+            ADVANCE         5,3                 обработка на host-процессоре
+            RELEASE         host
+            QUEUE           qproc_par
+            ENTER           proc_par            обработка процессором
+            DEPART          qproc_par
+proc2       ADVANCE         fn$fnproc_par       цикл для обработки группы
+            LOOP            1,proc2             число итераций определено в 1-ом параметре транзакта
+            LEAVE           proc_par
+            QUEUE           qhost2_par          заключительная обработка на host-процессоре
+            SEIZE           host
+            DEPART          qhost2_par
+            ADVANCE         5,3
+            RELEASE         host
+            ASSEMBLE        64                  объединение транзактов, относящихся к одной задаче
+            ASSIGN          3,m1                фиксация времени прохождения транзакта по модели
+
+            MARK            2
+            SPLIT           1023                1024 узла (одна задача)
+            QUEUE           qhost1_posl
+            SEIZE           host
+            DEPART          qhost1_posl
+            ADVANCE         5,3
+            RELEASE         host
+            QUEUE           qproc_posl
+            ENTER           proc_posl           обработка процессором
+            DEPART          qproc_posl
+            ADVANCE         fn$fnproc_posl
+            LEAVE           proc_posl
+            QUEUE           qhost2
+            SEIZE           host
+            DEPART          qhost2
+            ADVANCE         5,3
+            RELEASE         host
+            ASSEMBLE        1024
+            ASSIGN          4,mp2               фиксация времени прохождения транзакта по модели
+            TABULATE        tabl_s              расчет коэффициента ускорения
+            TERMINATE       1
