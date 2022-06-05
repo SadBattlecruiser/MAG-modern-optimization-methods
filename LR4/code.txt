@@ -1,0 +1,86 @@
+N_proc EQU 256
+points_N EQU 39168
+t_s EQU 50e-6
+m_s EQU 100
+l_s EQU 8
+t_c EQU 0.125e-7
+N_gr EQU 2
+d_s EQU SQR(N_proc)-1
+k_1 EQU 4
+s_1 EQU (points_N/N_proc)/k_1
+T_ik EQU 2
+
+t EQU 1e-8
+uniform_cf_par FUNCTION rn2,c2
+0,0.0/1,2e4
+uniform_cf_posl FUNCTION rn3,c2
+0,0.0/1,2e4
+
+proc_par STORAGE 256
+proc_posl STORAGE 1
+
+us VARIABLE p4/p3
+
+tabl_s TABLE v$us,42,0.25,60
+
+generate 1e8,100
+split (N_proc - 1)
+
+queue qhost1_par
+seize host
+depart qhost1_par
+advance 5e-6,3e-6
+release host
+
+assign 1,s_1
+assign 5,k_1
+
+queue qproc_par
+enter proc_par
+depart qproc_par;
+
+proc3 advance T_ik,1e-8
+proc2 advance t,fn$uniform_cf_par
+loop 1,proc2
+assign 1,s_1
+loop 5,proc3
+leave proc_par
+
+queue qhost2_par
+seize host
+depart qhost2_par
+advance 5e-6,3e-6
+release host
+assemble (N_proc)
+assign 3,m1
+
+* последовательная обработка
+mark 2
+split (points_N - 1)
+
+queue qhost1_posl
+seize host
+depart qhost1_posl
+advance 5e-6,3e-6
+release host
+
+queue qproc_posl
+enter proc_posl
+depart qproc_posl
+advance t,fn$uniform_cf_posl
+leave proc_posl
+
+queue qhost2
+seize host
+depart qhost2
+advance 5e-6,3e-6
+release host
+
+assemble points_N
+assign 4,mp2
+
+tabulate tabl_s
+
+TERMINATE 1
+
+START 300
