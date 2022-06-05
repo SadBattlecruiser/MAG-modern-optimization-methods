@@ -1,0 +1,96 @@
+N_proc EQU 256;  !!!!!!!
+points_N EQU 1024; берем все узлы во всех лабах (ограничение учитываем так Cf=[0;Cfmax])
+N_groups EQU 3; !!!!!!! N_proc=2, Groups=10; N_proc=4, Groups=9=число_точек_fnwork
+
+t_s EQU 50e-6
+m_s EQU 100
+l_s EQU 8
+t_c EQU 0.125e-7
+N_gr EQU 2
+d_s EQU SQR(N_proc)-1
+s_k EQU ((points_N/2)/N_proc)
+T_ik EQU 2#t_s+s_k#N_gr#l_s#d_s#t_c+s_k#m_s#l_s#d_s#t_c
+
+t EQU 1e-8
+uniform_cf_par FUNCTION rn2,c2
+0,0.0/1,2e4; !!!!!!
+uniform_cf_posl FUNCTION rn3,c2
+0,0.0/1,2e4; !!!!!!
+
+fnwork function p3,d3; !!!!!!!
+1,2/2,1/3,1; !!!!!!
+* 256 : 1,2/2,1/3,1
+* 128 : 1,4/2,2/3,1/4,1
+* 64  : 1,8/2,4/3,2/4,1/5,1
+* 32  : 1,16/2,8/3,4/4,2/5,1/6,1
+* 16  : 1,32/2,16/3,8/4,4/5,2/6,1/7,1
+* 8   : 1,64/2,32/3,16/4,8/5,4/6,2/7,1/8,1
+* 4   : 1,128/2,64/3,32/4,16/5,8/6,4/7,2/8,1/9,1
+* 2   : 1,256/2,128/3,64/4,32/5,16/6,8/7,4/8,2/9,1/10,1
+
+proc_par STORAGE 256; !!!!!!
+proc_posl STORAGE 1
+
+us VARIABLE p4/p3
+
+tabl_s TABLE v$us,42,0.25,60
+
+generate 1e8,100
+
+split (N_groups-1),,N_groups
+
+assign 1,fn$fnwork;
+split (N_proc-1);
+
+queue qhost1_par
+seize host
+depart qhost1_par
+advance 5e-6,3e-6
+release host
+
+queue qproc_par
+enter proc_par
+depart qproc_par;
+advance T_ik,1e-8
+proc2 advance t,fn$uniform_cf_par
+loop 1,proc2;
+leave proc_par
+
+queue qhost2_par
+seize host
+depart qhost2_par
+advance 5e-6,3e-6
+release host
+assemble (N_proc#N_groups)
+assign 3,m1
+
+
+mark 2
+split (points_N - 1)
+
+queue qhost1_posl
+seize host
+depart qhost1_posl
+advance 5e-6,3e-6
+release host
+
+queue qproc_posl
+enter proc_posl
+depart qproc_posl
+advance t,fn$uniform_cf_posl
+leave proc_posl
+
+queue qhost2
+seize host
+depart qhost2
+advance 5e-6,3e-6
+release host
+
+assemble points_N
+assign 4,mp2
+
+tabulate tabl_s
+
+TERMINATE 1
+
+START 100
