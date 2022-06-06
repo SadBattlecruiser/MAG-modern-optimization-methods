@@ -1,5 +1,5 @@
 N_proc EQU 256
-points_N EQU 39168
+points_N EQU 39936
 t_s EQU 50e-6
 m_s EQU 100
 l_s EQU 8
